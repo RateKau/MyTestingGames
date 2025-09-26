@@ -1,0 +1,331 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>RPG Web Game</title>
+<style>
+body { margin:0; background:#222; font-family:Arial,sans-serif; color:white; text-align:center; user-select:none; }
+/* Gold表示 */
+#gold { position:absolute; top:10px; left:50%; transform:translateX(-50%); font-size:24px; }
+/* 敵 */
+#enemy { width:200px; height:200px; background:white; position:absolute; top:30%; left:50%; transform:translateX(-50%); cursor:pointer; }
+/* HPバー */
+#enemyHpContainer { width:220px; height:25px; background:#666; position:absolute; top:25%; left:50%; transform:translateX(-50%); border-radius:5px; overflow:hidden; }
+#enemyHp { height:100%; width:100%; background:green; transition: width 0.2s linear, background 0.2s linear; }
+#enemyHpText { position:absolute; top:25%; left:50%; transform:translate(-50%, -120%); font-size:16px; color:white; background:transparent; }
+/* Expバー */
+#expContainer { width:400px; height:20px; background:#666; position:absolute; bottom:40px; left:50%; transform:translateX(-50%); border-radius:5px; overflow:hidden; }
+#expBar { height:100%; width:0%; background:white; transition: width 0.2s linear; }
+/* Level表示 */
+#level { position:absolute; bottom:70px; left:50%; transform:translateX(-50%); font-size:20px; }
+/* Gold +アニメーション */
+.goldGain { position:absolute; color:yellow; font-size:18px; opacity:1; animation:floatUp 1s ease-out forwards; }
+@keyframes floatUp { from { transform: translateY(0); opacity:1; } to { transform: translateY(-30px); opacity:0; } }
+/* メニュー共通 */
+.menuScreen { display:none; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:40%; height:65%; background:#333; border:2px solid white; border-radius:15px; padding:20px; text-align:center; overflow:auto; }
+.menuScreen h2 { margin:10px 0; }
+/* ボタン */
+.menuScreen button, #upgradeBtn, #craftBtn, #fishBtn, #inventoryBtn { display:block; margin:10px auto; padding:10px; font-size:18px; background:#555; border:none; color:white; border-radius:8px; cursor:pointer; }
+.menuScreen button:disabled { background:#222; cursor:not-allowed; }
+#upgradeBtn, #craftBtn, #fishBtn, #inventoryBtn { position:absolute; right:20px; padding:10px 20px; width:auto; }
+#upgradeBtn { top:50%; transform:translateY(-50%); }
+#craftBtn { top:20%; transform:translateY(0%); }
+#fishBtn { top:30%; transform:translateY(0%); }
+#inventoryBtn { top:40%; transform:translateY(0%); }
+/* ブースト表示 */
+#boostDisplay { position:absolute; right:10px; bottom:10px; font-size:16px; color:cyan; }
+/* 釣り */
+#fishingBarContainer { width:80%; height:30px; background:#666; margin:20px auto; border-radius:5px; overflow:hidden; display:none; }
+#fishingBar { height:100%; width:0%; background:skyblue; transition: width 0.05s linear; }
+</style>
+</head>
+<body>
+
+<div id="gold">Gold: 0</div>
+<div id="enemyHpContainer"><div id="enemyHp"></div></div>
+<div id="enemyHpText">100 / 100</div>
+<div id="enemy"></div>
+<div id="level">Level: 1</div>
+<div id="expContainer"><div id="expBar"></div></div>
+
+<!-- メニューボタン -->
+<button id="upgradeBtn">アップグレード</button>
+<button id="craftBtn">クラフト</button>
+<button id="fishBtn">釣り</button>
+<button id="inventoryBtn">インベントリ</button>
+
+<!-- ブースト表示 -->
+<div id="boostDisplay"></div>
+
+<!-- アップグレード画面 -->
+<div id="upgradeMenu" class="menuScreen">
+  <h2>アップグレード</h2>
+  <p id="upgradePoints">ポイント: 0</p>
+  <button id="autoAttackBtn">自動攻撃 (最大1)</button>
+  <button id="attackPowerBtn">攻撃力アップ (最大10)</button>
+  <button id="attackSpeedBtn">攻撃速度アップ (最大5)</button>
+  <button id="goldBoostBtn">ゴールド増加 (最大5)</button>
+  <button id="closeUpgrade">閉じる</button>
+</div>
+
+<!-- クラフト画面 -->
+<div id="craftMenu" class="menuScreen">
+  <h2>クラフト</h2>
+  <button id="craftRodBtn">釣竿作成 (Gold5000)</button>
+  <button id="closeCraft">閉じる</button>
+</div>
+
+<!-- 釣り画面 -->
+<div id="fishMenu" class="menuScreen">
+  <h2>釣り</h2>
+  <button id="fishActionBtn">釣る</button>
+  <div id="fishingBarContainer"><div id="fishingBar"></div></div>
+  <button id="closeFish">閉じる</button>
+</div>
+
+<!-- インベントリ画面 -->
+<div id="inventoryMenu" class="menuScreen">
+  <h2>インベントリ</h2>
+  <div id="inventoryList"></div>
+  <button id="closeInventory">閉じる</button>
+</div>
+
+<script>
+let gold=0, exp=0, level=1, upgradePoints=0;
+const maxLevel=200;
+let enemyMaxHp=100, enemyHp=enemyMaxHp, attackDamage=10, goldMultiplier=1;
+let autoAttackEnabled=false, hasRod=false;
+let upgrades={ autoAttack:0, attackPower:0, attackSpeed:0, goldBoost:0 };
+let boostEffects={ exp2x:0, point2x:0 };
+let inventory=[];
+
+const goldEl=document.getElementById("gold");
+const enemyEl=document.getElementById("enemy");
+const enemyHpEl=document.getElementById("enemyHp");
+const enemyHpTextEl=document.getElementById("enemyHpText");
+const expBarEl=document.getElementById("expBar");
+const levelEl=document.getElementById("level");
+const upgradeBtn=document.getElementById("upgradeBtn");
+const craftBtn=document.getElementById("craftBtn");
+const fishBtn=document.getElementById("fishBtn");
+const inventoryBtn=document.getElementById("inventoryBtn");
+const upgradeMenu=document.getElementById("upgradeMenu");
+const craftMenu=document.getElementById("craftMenu");
+const fishMenu=document.getElementById("fishMenu");
+const inventoryMenu=document.getElementById("inventoryMenu");
+const upgradePointsEl=document.getElementById("upgradePoints");
+const autoAttackBtn=document.getElementById("autoAttackBtn");
+const attackPowerBtn=document.getElementById("attackPowerBtn");
+const attackSpeedBtn=document.getElementById("attackSpeedBtn");
+const goldBoostBtn=document.getElementById("goldBoostBtn");
+const craftRodBtn=document.getElementById("craftRodBtn");
+const fishActionBtn=document.getElementById("fishActionBtn");
+const fishingBarContainer=document.getElementById("fishingBarContainer");
+const fishingBar=document.getElementById("fishingBar");
+const inventoryList=document.getElementById("inventoryList");
+const boostDisplay=document.getElementById("boostDisplay");
+
+function requiredExp(lv){ return lv*10; }
+
+function updateEnemyHp(){
+  let p=(enemyHp/enemyMaxHp)*100;
+  enemyHpEl.style.width=p+"%";
+  if(p>50) enemyHpEl.style.background="green";
+  else if(p>20) enemyHpEl.style.background="yellow";
+  else enemyHpEl.style.background="red";
+  enemyHpTextEl.textContent=enemyHp+" / "+enemyMaxHp;
+}
+function updateExp(){
+  let need=requiredExp(level);
+  let percent=Math.min((exp/need)*100,100);
+  expBarEl.style.width=percent+"%";
+  levelEl.textContent="Level: "+level;
+}
+function updateGold(){ goldEl.textContent="Gold: "+gold; }
+function updateUpgradePoints(){ upgradePointsEl.textContent="ポイント: "+upgradePoints; }
+
+function showGoldGain(amount){
+  const gain=document.createElement("div");
+  gain.className="goldGain";
+  gain.textContent="+"+amount;
+  gain.style.left="55%"; gain.style.top="40px";
+  document.body.appendChild(gain);
+  setTimeout(()=>gain.remove(),1000);
+}
+
+function attackEnemy(){
+  let rewardGold=5*goldMultiplier;
+  let rewardExp=2*(boostEffects.exp2x>0?2:1);
+  enemyHp-=attackDamage;
+  if(enemyHp<=0){
+    gold+=rewardGold; exp+=rewardExp;
+    showGoldGain(rewardGold); updateGold(); updateExp();
+    while(exp>=requiredExp(level) && level<maxLevel){
+      exp-=requiredExp(level); level++; upgradePoints++; updateUpgradePoints();
+    }
+    enemyMaxHp=100+Math.floor(level/5)*50;
+    enemyHp=enemyMaxHp;
+  }
+  updateEnemyHp(); saveData();
+}
+
+enemyEl.addEventListener("click",attackEnemy);
+
+const menuScreens=[upgradeMenu, craftMenu, fishMenu, inventoryMenu];
+function showMenu(id){ menuScreens.forEach(m=>m.style.display="none"); document.getElementById(id).style.display="block"; }
+function hideMenus(){ menuScreens.forEach(m=>m.style.display="none"); }
+
+upgradeBtn.addEventListener('click',()=>showMenu('upgradeMenu'));
+craftBtn.addEventListener('click',()=>showMenu('craftMenu'));
+fishBtn.addEventListener('click',()=>showMenu('fishMenu'));
+inventoryBtn.addEventListener('click',()=>showMenu('inventoryMenu'));
+
+document.getElementById("closeUpgrade").addEventListener('click',hideMenus);
+document.getElementById("closeCraft").addEventListener('click',hideMenus);
+document.getElementById("closeFish").addEventListener('click',hideMenus);
+document.getElementById("closeInventory").addEventListener('click',hideMenus);
+
+autoAttackBtn.addEventListener('click',()=>{
+  if(upgradePoints>0 && upgrades.autoAttack<1){ upgrades.autoAttack++; upgradePoints--; autoAttackEnabled=true; updateUpgradePoints(); saveData(); }
+});
+attackPowerBtn.addEventListener('click',()=>{
+  let costs=[1,1,3,3,5,5,15,15,15,15];
+  if(upgrades.attackPower<10 && upgradePoints>=costs[upgrades.attackPower]){
+    upgradePoints-=costs[upgrades.attackPower]; attackDamage*=2; upgrades.attackPower++; updateUpgradePoints(); saveData();
+  }
+});
+attackSpeedBtn.addEventListener('click',()=>{
+  let costs=[10,10,25,50,75]; let speeds=[2.5,2,1,0.5,0.2];
+  if(upgrades.attackSpeed<5 && upgrades.autoAttack>0 && upgradePoints>=costs[upgrades.attackSpeed]){
+    upgradePoints-=costs[upgrades.attackSpeed]; upgrades.attackSpeed++; updateUpgradePoints(); saveData();
+  }
+});
+goldBoostBtn.addEventListener('click',()=>{
+  if(upgrades.goldBoost<5 && upgradePoints>0){ upgrades.goldBoost++; goldMultiplier=upgrades.goldBoost+1; upgradePoints--; updateUpgradePoints(); saveData(); }
+});
+
+craftRodBtn.addEventListener('click',()=>{
+  if(gold>=5000 && !hasRod){ gold-=5000; hasRod=true; updateGold(); alert("釣竿作成！"); saveData(); }
+  else if(hasRod) alert("既に釣竿があります"); else alert("Goldが足りません");
+});
+
+let fishingActive=false;
+fishActionBtn.addEventListener('click',()=>{
+  if(!hasRod){ alert("釣竿が必要です"); return; }
+  if(fishingActive) return;
+  fishingActive=true; fishActionBtn.disabled=true;
+  let count=3;
+  fishActionBtn.textContent="開始まで: "+count;
+  let countdown=setInterval(()=>{
+    count--; if(count>0) fishActionBtn.textContent="開始まで: "+count;
+    else { clearInterval(countdown); fishActionBtn.textContent="連打開始!"; startFishing(); }
+  },1000);
+});
+function startFishing(){
+  fishingBarContainer.style.display='block';
+  let clicks=0;
+  function clickHandler(){ clicks++; }
+  document.addEventListener('click',clickHandler);
+  let fishingTime=3000; let startTime=Date.now();
+  let fishingInterval=setInterval(()=>{
+    let elapsed=Date.now()-startTime;
+    fishingBar.style.width=Math.min((elapsed/fishingTime)*100,100)+"%";
+    if(elapsed>=fishingTime){
+      clearInterval(fishingInterval);
+      document.removeEventListener('click',clickHandler);
+      fishingBarContainer.style.display='none';
+      fishingActive=false; fishActionBtn.disabled=false; fishActionBtn.textContent='釣る';
+      determineFishingReward(clicks);
+    }
+  },50);
+}
+function determineFishingReward(clicks){
+  let reward=Math.random()<0.5?"point2x":"exp2x";
+  let item={type:reward, name:reward==="point2x"?"アップグレードポイント2倍ブースト":"Exp2倍ブースト"};
+  inventory.push(item); updateInventoryUI();
+  alert("釣り成功! "+item.name+" を獲得しました！");
+}
+
+function updateInventoryUI(){
+  inventoryList.innerHTML='';
+  inventory.forEach((item,idx)=>{
+    let btn=document.createElement('button');
+    btn.textContent=item.name;
+    btn.addEventListener('click',()=>{ useItem(idx); });
+    inventoryList.appendChild(btn);
+  });
+}
+function useItem(idx){
+  let item=inventory[idx];
+  if(item.type==="point2x") boostEffects.point2x=1800;
+  else if(item.type==="exp2x") boostEffects.exp2x=1800;
+  inventory.splice(idx,1); updateInventoryUI();
+  alert(item.name+" を使用しました！");
+}
+
+setInterval(()=>{
+  for(let key in boostEffects){ if(boostEffects[key]>0) boostEffects[key]--; }
+  let text="";
+  if(boostEffects.point2x>0) text+="ポイント2倍: "+Math.floor(boostEffects.point2x/60)+"分"+boostEffects.point2x%60+"秒 ";
+  if(boostEffects.exp2x>0) text+="Exp2倍: "+Math.floor(boostEffects.exp2x/60)+"分"+boostEffects.exp2x%60+"秒";
+  boostDisplay.textContent=text;
+},1000);
+
+function saveData(){
+  localStorage.setItem("rpgData",JSON.stringify({gold,exp,level,upgradePoints,upgrades,attackDamage,goldMultiplier,autoAttackEnabled,inventory,hasRod}));
+}
+function loadData(){
+  let data=JSON.parse(localStorage.getItem("rpgData"));
+  if(data){
+    gold=data.gold; exp=data.exp; level=data.level; upgradePoints=data.upgradePoints;
+    upgrades=data.upgrades; attackDamage=data.attackDamage; goldMultiplier=data.goldMultiplier;
+    autoAttackEnabled=data.autoAttackEnabled; inventory=data.inventory||[]; hasRod=data.hasRod||false;
+  }
+  updateGold(); updateExp(); updateEnemyHp(); updateUpgradePoints(); updateInventoryUI();
+}
+loadData();
+
+setInterval(()=>{ if(autoAttackEnabled) attackEnemy(); }, upgrades.attackSpeed>0?upgrades.attackSpeed*1000:3000);
+
+</script>
+</body>
+</html>
