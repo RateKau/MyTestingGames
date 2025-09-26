@@ -2,52 +2,112 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>Web RPG</title>
+  <title>RPG Web Game</title>
   <style>
-    body { margin:0; background:#222; font-family:Arial,sans-serif; color:white; text-align:center; user-select:none; }
-    /* Gold */
-    #gold { position:absolute; top:10px; left:50%; transform:translateX(-50%); font-size:24px; }
-    .goldGain { position:absolute; color:yellow; font-size:18px; opacity:1; animation: floatUp 1s ease-out forwards; }
-    @keyframes floatUp { from { transform:translateY(0); opacity:1; } to { transform:translateY(-30px); opacity:0; } }
+    body {
+      margin: 0;
+      background: #222;
+      font-family: Arial, sans-serif;
+      color: white;
+      text-align: center;
+      user-select: none;
+    }
+
+    /* Gold表示 */
+    #gold {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 24px;
+    }
 
     /* 敵 */
-    #enemy { width:200px; height:200px; background:white; position:absolute; top:30%; left:50%; transform:translateX(-50%); cursor:pointer; }
-    #enemyHpContainer { width:220px; height:25px; background:#666; position:absolute; top:25%; left:50%; transform:translateX(-50%); border-radius:5px; overflow:hidden; }
-    #enemyHp { height:100%; width:100%; background:green; transition: width 0.2s linear, background 0.2s linear; }
-    #enemyHpText { position:absolute; top:25%; left:50%; transform:translate(-50%,-120%); font-size:16px; background:transparent; }
+    #enemy {
+      width: 200px;
+      height: 200px;
+      background: white;
+      position: absolute;
+      top: 30%;
+      left: 50%;
+      transform: translateX(-50%);
+      cursor: pointer;
+    }
 
-    /* Exp */
-    #expContainer { width:400px; height:20px; background:#666; position:absolute; bottom:70px; left:50%; transform:translateX(-50%); border-radius:5px; overflow:hidden; }
-    #expBar { height:100%; width:0%; background:white; transition: width 0.2s linear; }
+    /* HPバー外枠 */
+    #enemyHpContainer {
+      width: 220px;
+      height: 25px;
+      background: #666;
+      position: absolute;
+      top: 25%;
+      left: 50%;
+      transform: translateX(-50%);
+      border-radius: 5px;
+      overflow: hidden;
+    }
 
-    /* Level */
-    #level { position:absolute; bottom:100px; left:50%; transform:translateX(-50%); font-size:20px; }
+    /* HPバー本体 */
+    #enemyHp {
+      height: 100%;
+      width: 100%;
+      background: green;
+      transition: width 0.2s linear, background 0.2s linear;
+    }
 
-    /* 自動攻撃切替 */
-    #autoAttackToggle { position:absolute; bottom:10px; left:50%; transform:translateX(-50%); padding:8px 16px; font-size:16px; border:none; border-radius:8px; background:#444; color:white; cursor:pointer; }
+    /* HP数値 */
+    #enemyHpText {
+      position: absolute;
+      top: 25%;
+      left: 50%;
+      transform: translate(-50%, -120%);
+      font-size: 16px;
+      color: white;
+      background: transparent;
+    }
 
-    /* 画面切替ボタン */
-    .topBtn { position:absolute; top:50px; padding:8px 12px; font-size:16px; border:none; border-radius:8px; background:#555; color:white; cursor:pointer; }
-    #upgradeBtn { right:20px; }
-    #craftBtn { right:160px; }
-    #fishBtn { right:300px; }
-    #inventoryBtn { right:440px; }
+    /* Expバー */
+    #expContainer {
+      width: 400px;
+      height: 20px;
+      background: #666;
+      position: absolute;
+      bottom: 40px;
+      left: 50%;
+      transform: translateX(-50%);
+      border-radius: 5px;
+      overflow: hidden;
+    }
 
-    /* メニュー画面共通 */
-    .menuScreen { display:none; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:40%; height:65%; background:#333; border:2px solid white; border-radius:15px; padding:20px; text-align:center; }
-    .menuScreen h2 { margin:10px 0; }
-    .menuScreen button { margin-top:15px; padding:8px 16px; background:#900; border:none; color:white; font-size:16px; border-radius:8px; cursor:pointer; }
+    #expBar {
+      height: 100%;
+      width: 0%;
+      background: white;
+      transition: width 0.2s linear;
+    }
 
-    /* アップグレード画面のボタン */
-    .upgradeBtn { display:block; margin:10px auto; padding:10px; width:80%; font-size:18px; background:#555; border:none; color:white; border-radius:8px; cursor:pointer; }
-    .upgradeBtn:disabled { background:#222; cursor:not-allowed; }
+    /* Level表示 */
+    #level {
+      position: absolute;
+      bottom: 70px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 20px;
+    }
 
-    /* 釣り用バー */
-    #fishingBar { display:none; width:80%; height:30px; background:#666; margin:20px auto; border-radius:5px; overflow:hidden; }
-    #fishingProgress { height:100%; width:0%; background:skyblue; }
-    
-    /* 画面右下ブースト表示 */
-    #boostDisplay { position:absolute; bottom:10px; right:10px; font-size:16px; }
+    /* Gold +アニメーション */
+    .goldGain {
+      position: absolute;
+      color: yellow;
+      font-size: 18px;
+      opacity: 1;
+      animation: floatUp 1s ease-out forwards;
+    }
+
+    @keyframes floatUp {
+      from { transform: translateY(0); opacity: 1; }
+      to { transform: translateY(-30px); opacity: 0; }
+    }
   </style>
 </head>
 <body>
@@ -61,235 +121,95 @@
   <div id="level">Level: 1</div>
   <div id="expContainer"><div id="expBar"></div></div>
 
-  <button id="autoAttackToggle">自動攻撃: ON</button>
-
-  <!-- 画面切替ボタン -->
-  <button id="upgradeBtn" class="topBtn">アップグレード</button>
-  <button id="craftBtn" class="topBtn">クラフト</button>
-  <button id="fishBtn" class="topBtn">釣り</button>
-  <button id="inventoryBtn" class="topBtn">インベントリ</button>
-
-  <!-- アップグレード画面 -->
-  <div id="upgradeMenu" class="menuScreen">
-    <h2>アップグレード</h2>
-    <p id="upgradePoints">ポイント: 0</p>
-    <button id="closeUpgrade">閉じる</button>
-  </div>
-
-  <!-- クラフト画面 -->
-  <div id="craftMenu" class="menuScreen">
-    <h2>クラフト</h2>
-    <button id="craftRodBtn" class="upgradeBtn">釣竿を作る (Gold 5000)</button>
-    <button id="closeCraft">閉じる</button>
-  </div>
-
-  <!-- 釣り画面 -->
-  <div id="fishMenu" class="menuScreen">
-    <h2>釣り</h2>
-    <div style="width:100px;height:100px;background:skyblue;border-radius:50%;margin:50px auto;"></div>
-    <button id="fishActionBtn">釣る</button>
-    <div id="fishingBar"><div id="fishingProgress"></div></div>
-    <button id="closeFish">閉じる</button>
-  </div>
-
-  <!-- インベントリ画面 -->
-  <div id="inventoryMenu" class="menuScreen">
-    <h2>インベントリ</h2>
-    <button id="closeInventory">閉じる</button>
-  </div>
-
-  <div id="boostDisplay"></div>
-
   <script>
-    // --- ゲームデータ ---
-    let gold = 0, exp = 0, level = 1;
-    let enemyMaxHp = 100, enemyHp = 100, attackDamage = 10;
-    let goldMultiplier = 1;
-    let autoAttackEnabled = true;
-    let upgradePoints = 0;
-    let upgrades = { autoAttack:0, attackPower:0, goldBoost:0 };
-    let hasRod = false;
-    let fishingActive = false;
-    let boostEffects = { exp2x:0, point2x:0 };
+    let gold = 0;
+    let exp = 0;
+    let level = 1;
+    const maxLevel = 30;
+    let enemyMaxHp = 100;
+    let enemyHp = enemyMaxHp;
 
-    // --- UI ---
     const goldEl = document.getElementById("gold");
     const enemyEl = document.getElementById("enemy");
     const enemyHpEl = document.getElementById("enemyHp");
     const enemyHpTextEl = document.getElementById("enemyHpText");
     const expBarEl = document.getElementById("expBar");
     const levelEl = document.getElementById("level");
-    const upgradePointsEl = document.getElementById("upgradePoints");
-    const autoAttackBtn = document.getElementById("autoAttackToggle");
-    const craftRodBtn = document.getElementById("craftRodBtn");
-    const fishActionBtn = document.getElementById("fishActionBtn");
-    const fishingBar = document.getElementById("fishingBar");
-    const fishingProgress = document.getElementById("fishingProgress");
-    const boostDisplay = document.getElementById("boostDisplay");
 
-    const menuScreens = document.querySelectorAll('.menuScreen');
-
-    // --- 敵 ---
-    function updateEnemyHp(){
-      let percent = (enemyHp/enemyMaxHp)*100;
-      enemyHpEl.style.width = percent+"%";
-      enemyHpEl.style.background = percent>50?"green":percent>20?"yellow":"red";
-      enemyHpTextEl.textContent = enemyHp+" / "+enemyMaxHp;
+    // 必要経験値計算（例: level * 10）
+    function requiredExp(lv) {
+      return lv * 10;
     }
 
-    // --- Exp ---
-    function requiredExp(lv){ return lv*10; }
-    function updateExp(){
-      let percent = Math.min((exp/requiredExp(level))*100,100);
-      expBarEl.style.width = percent+"%";
-      levelEl.textContent = "Level: "+level;
+    // 敵HP更新
+    function updateEnemyHp() {
+      let percent = (enemyHp / enemyMaxHp) * 100;
+      enemyHpEl.style.width = percent + "%";
+
+      // 色変化
+      if (percent > 50) {
+        enemyHpEl.style.background = "green";
+      } else if (percent > 20) {
+        enemyHpEl.style.background = "yellow";
+      } else {
+        enemyHpEl.style.background = "red";
+      }
+
+      enemyHpTextEl.textContent = enemyHp + " / " + enemyMaxHp;
     }
 
-    // --- Gold ---
-    function updateGold(){ goldEl.textContent = "Gold: "+gold; }
+    // Exp更新
+    function updateExp() {
+      let need = requiredExp(level);
+      let percent = Math.min((exp / need) * 100, 100);
+      expBarEl.style.width = percent + "%";
+      levelEl.textContent = "Level: " + level;
+    }
 
-    function showGoldGain(amount){
+    // Gold更新
+    function updateGold() {
+      goldEl.textContent = "Gold: " + gold;
+    }
+
+    // Goldアニメーション
+    function showGoldGain(amount) {
       const gain = document.createElement("div");
-      gain.className="goldGain"; gain.textContent="+"+amount;
-      gain.style.left="55%"; gain.style.top="40px";
+      gain.className = "goldGain";
+      gain.textContent = "+" + amount;
+      gain.style.left = "55%";
+      gain.style.top = "40px";
       document.body.appendChild(gain);
-      setTimeout(()=>gain.remove(),1000);
+      setTimeout(() => gain.remove(), 1000);
     }
 
-    // --- 攻撃 ---
-    function attackEnemy(){
-      if(autoAttackEnabled || !fishingActive){
-        enemyHp -= attackDamage;
-        if(enemyHp<=0){
-          let rewardGold = 5*goldMultiplier;
-          let rewardExp = 2*(boostEffects.exp2x>0?2:1);
-          gold += rewardGold; exp += rewardExp;
-          showGoldGain(rewardGold); updateGold(); updateExp();
+    // 敵クリック処理
+    enemyEl.addEventListener("click", () => {
+      enemyHp -= 10;
+      if (enemyHp <= 0) {
+        // 敵撃破
+        gold += 5;
+        exp += 2;
+        showGoldGain(5);
+        updateGold();
+        updateExp();
 
-          while(exp>=requiredExp(level)){
-            exp -= requiredExp(level); level++;
-            upgradePoints++; updateUpgradePoints();
-          }
-          enemyHp = enemyMaxHp;
+        // レベルアップ判定
+        while (exp >= requiredExp(level) && level < maxLevel) {
+          exp -= requiredExp(level);
+          level++;
+          updateExp();
         }
-        updateEnemyHp();
-        saveData();
+
+        // 敵リセット
+        enemyHp = enemyMaxHp;
       }
-    }
-
-    enemyEl.addEventListener('click',attackEnemy);
-
-    // --- 自動攻撃切替 ---
-    autoAttackBtn.addEventListener('click',()=>{
-      autoAttackEnabled = !autoAttackEnabled;
-      autoAttackBtn.textContent = "自動攻撃: "+(autoAttackEnabled?"ON":"OFF");
+      updateEnemyHp();
     });
 
-    // --- アップグレード ---
-    function updateUpgradePoints(){ upgradePointsEl.textContent="ポイント: "+upgradePoints; }
-
-    // --- メニュー開閉 ---
-    document.getElementById("upgradeBtn").addEventListener('click',()=>{ showMenu('upgradeMenu'); });
-    document.getElementById("craftBtn").addEventListener('click',()=>{ showMenu('craftMenu'); });
-    document.getElementById("fishBtn").addEventListener('click',()=>{ showMenu('fishMenu'); });
-    document.getElementById("inventoryBtn").addEventListener('click',()=>{ showMenu('inventoryMenu'); });
-
-    document.getElementById("closeUpgrade").addEventListener('click',()=>{ hideMenus(); });
-    document.getElementById("closeCraft").addEventListener('click',()=>{ hideMenus(); });
-    document.getElementById("closeFish").addEventListener('click',()=>{ hideMenus(); });
-    document.getElementById("closeInventory").addEventListener('click',()=>{ hideMenus(); });
-
-    function showMenu(id){
-      menuScreens.forEach(m=>m.style.display='none');
-      document.getElementById(id).style.display='block';
-    }
-    function hideMenus(){ menuScreens.forEach(m=>m.style.display='none'); }
-
-    // --- クラフト ---
-    craftRodBtn.addEventListener('click',()=>{
-      if(gold>=5000 && !hasRod){ gold-=5000; hasRod=true; updateGold(); alert("釣竿作成！"); }
-      else if(hasRod) alert("既に釣竿があります"); else alert("Goldが足りません");
-    });
-
-    // --- 釣り ---
-    fishActionBtn.addEventListener('click',()=>{
-      if(!hasRod){ alert("釣竿が必要です"); return; }
-      if(fishingActive) return;
-
-      fishingActive = true;
-      fishActionBtn.disabled = true;
-      let count=3;
-      fishActionBtn.textContent="開始まで: "+count;
-      let countdown = setInterval(()=>{
-        count--;
-        if(count>0) fishActionBtn.textContent="開始まで: "+count;
-        else { clearInterval(countdown); fishActionBtn.textContent="連打開始!"; startFishing(); }
-      },1000);
-    });
-
-    function startFishing(){
-      fishingBar.style.display='block';
-      let clicks=0;
-      function clickHandler(){ clicks++; }
-      document.addEventListener('click',clickHandler);
-
-      let fishingTime=3000;
-      let startTime=Date.now();
-      let fishingInterval = setInterval(()=>{
-        let elapsed = Date.now()-startTime;
-        fishingProgress.style.width = Math.min((elapsed/fishingTime)*100,100)+"%";
-        if(elapsed>=fishingTime){
-          clearInterval(fishingInterval);
-          document.removeEventListener('click',clickHandler);
-          fishingBar.style.display='none';
-          fishingActive=false;
-          fishActionBtn.disabled=false;
-          fishActionBtn.textContent="釣る";
-          determineFishingReward(clicks);
-        }
-      },20);
-    }
-
-    function determineFishingReward(clicks){
-      let reward = Math.random()<0.5?"point2x":"exp2x";
-      boostEffects[reward]=1800;
-      alert("釣り成功！ "+(reward==="point2x"?"アップグレードポイント2倍":"Exp2倍")+"を獲得！");
-    }
-
-    // --- ブースト表示 ---
-    function updateBoostDisplay(){
-      let texts=[];
-      if(boostEffects.exp2x>0) texts.push("Exp2x: "+formatTime(boostEffects.exp2x));
-      if(boostEffects.point2x>0) texts.push("ポイント2x: "+formatTime(boostEffects.point2x));
-      boostDisplay.textContent=texts.join(" | ");
-    }
-    setInterval(()=>{
-      for(let k in boostEffects) if(boostEffects[k]>0) boostEffects[k]--;
-      updateBoostDisplay();
-    },1000);
-
-    function formatTime(sec){ let m=Math.floor(sec/60); let s=sec%60; return m+"m"+s+"s"; }
-
-    // --- 保存 ---
-    function saveData(){
-      localStorage.setItem("rpgData",JSON.stringify({gold,exp,level,upgradePoints,upgrades,attackDamage,goldMultiplier,autoAttackEnabled,hasRod}));
-    }
-    function loadData(){
-      let data=JSON.parse(localStorage.getItem("rpgData"));
-      if(data){
-        gold=data.gold; exp=data.exp; level=data.level;
-        upgradePoints=data.upgradePoints; upgrades=data.upgrades;
-        attackDamage=data.attackDamage; goldMultiplier=data.goldMultiplier;
-        autoAttackEnabled=data.autoAttackEnabled; hasRod=data.hasRod;
-      }
-      updateGold(); updateExp(); updateEnemyHp(); updateUpgradePoints();
-      autoAttackBtn.textContent="自動攻撃: "+(autoAttackEnabled?"ON":"OFF");
-    }
-    loadData();
-
-    // --- 自動攻撃 ---
-    setInterval(()=>{ if(autoAttackEnabled) attackEnemy(); },3000);
-
+    // 初期表示
+    updateEnemyHp();
+    updateExp();
+    updateGold();
   </script>
 </body>
 </html>
